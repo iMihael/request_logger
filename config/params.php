@@ -1,5 +1,6 @@
 <?php
 
 return [
-    'webHook' => 'plaseYourWebHookHere'
+    'webHook' => 'yourWebHook',
+    'botToken' => 'botToken'
 ];

@@ -1,0 +1,8 @@
+class_name: FunctionalTester
+modules:
+    enabled:
+        - \Helper\Functional
+        - Silex:
+            app: 'web/index.php'
+        - REST:
+            depends: Silex

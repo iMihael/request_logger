@@ -2,11 +2,18 @@
 
 namespace web;
 
+use app\Logger;
+use app\WebHook;
 use MongoDB\Client;
 use Silex\Application;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__.'/../app/Telegram.php';
+require_once __DIR__.'/../app/WebHook.php';
+require_once __DIR__.'/../app/Logger.php';
+
 $mongo = require __DIR__ . '/../config/mongo.php';
 $params = require __DIR__ . '/../config/params.php';
 
@@ -19,37 +26,18 @@ $app->get('/', function () {
     return 'Hello World';
 });
 
-$app->match('/request', function(Request $request) use ($db) {
-
-    $collection = $db->selectCollection('raw_request');
-    $collection->insertOne([
-        'get' => $request->query->all(),
-        'post' => $request->request->all(),
-        'headers' => $request->headers->all(),
-        'method' => $request->getMethod(),
-        'ip' => $request->getClientIp(),
-    ]);
-
-
-    return 'ok';
+$app->match('/request/{token}/{tag}', function($token, $tag, Request $request) use ($db) {
+    new Logger($request, $db, $token, $tag);
+    $response = new Response();
+    $response->setStatusCode(204);
+    return $response;
 });
 
 $app->match('/' . $params['webHook'], function(Request $request) use ($db) {
-
-    if($body = json_decode($request->getContent(), true)) {
-        $collection = $db->selectCollection('web_hook');
-        $collection->insertOne([
-            'get' => $request->query->all(),
-            'post' => $request->request->all(),
-            'headers' => $request->headers->all(),
-            'method' => $request->getMethod(),
-            'ip' => $request->getClientIp(),
-            'body' => $body,
-        ]);
-    }
-
-
-    return 'ok';
+    new WebHook($request, $db);
+    $response = new Response();
+    $response->setStatusCode(204);
+    return $response;
 });
 
 $app->run();
