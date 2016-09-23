@@ -24,6 +24,9 @@ class WebHook
             '/^\/start$/' => 'start',
             '/^\/subscribe ([a-zA-Z0-9]+)$/' => 'subscribe',
             '/^\/unsubscribe ([a-zA-Z0-9]+)$/' => 'unsubscribe',
+            '/^\/gettags$/' => 'getTags',
+            '/^\/gettoken$/' => 'getToken',
+            '/^\/help$/' => 'help',
         ];
     }
 
@@ -49,7 +52,39 @@ class WebHook
         }
     }
 
-    public function subscribe($body, $matches)
+    private function help($body)
+    {
+        (new Telegram())->sendRequest('sendMessage', [
+            'chat_id' => $body['message']['chat']['id'],
+            'text' => "/start - regenerate token\n/gettoken - get token\n/gettags - get subscribed tags\n/subscribe - subscribe to tag\n/unsubscribe - unsubscribe from tag\nuri for sending requests: http://request.gq/request/<token>/<tag>",
+        ]);
+    }
+
+    private function getToken($body)
+    {
+        $collection = $this->db->selectCollection('user');
+        if($user = $collection->findOne(['user_id' => $body['message']['from']['id']])) {
+            (new Telegram())->sendRequest('sendMessage', [
+                'chat_id' => $body['message']['chat']['id'],
+                'text' => $user['token'],
+            ]);
+        }
+    }
+
+    private function getTags($body)
+    {
+        $collection = $this->db->selectCollection('user');
+        if($user = $collection->findOne(['user_id' => $body['message']['from']['id']])) {
+            $tags = isset($user['tags']) ? (array)$user['tags'] : [];
+
+            (new Telegram())->sendRequest('sendMessage', [
+                'chat_id' => $body['message']['chat']['id'],
+                'text' => json_encode($tags),
+            ]);
+        }
+    }
+
+    private function subscribe($body, $matches)
     {
         $collection = $this->db->selectCollection('user');
         if($user = $collection->findOne(['user_id' => $body['message']['from']['id']])) {
@@ -73,7 +108,7 @@ class WebHook
         }
     }
 
-    public function unsubscribe($body, $matches)
+    private function unsubscribe($body, $matches)
     {
         $collection = $this->db->selectCollection('user');
         if($user = $collection->findOne(['user_id' => $body['message']['from']['id']])) {
@@ -125,7 +160,7 @@ class WebHook
 
         (new Telegram())->sendRequest('sendMessage', [
             'chat_id' => $body['message']['chat']['id'],
-            'text' => "Your new token is **$token**",
+            'text' => "Your new token is **$token**\nYou can send requests to http://request.gq/request/$token/{tag}\nTo receive requests here, you must subscribe to tag using command /subscribe",
             'parse_mode' => 'Markdown',
         ]);
     }

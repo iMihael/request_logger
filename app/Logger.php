@@ -20,7 +20,7 @@ class Logger
         $this->tag = $tag;
 
         if($user = $this->auth()) {
-            $this->parse((string)$user['_id'], $user['chat_id']);
+            $this->parse($user);
         }
     }
 
@@ -37,12 +37,12 @@ class Logger
         return null;
     }
 
-    private function parse($userId, $chatId)
+    private function parse($user)
     {
         $collection = $this->db->selectCollection('request');
 
         $collection->insertOne([
-            'user_id' => $userId,
+            'user_id' => (string)$user['_id'],
             'tag' => $this->tag,
             'get' => $this->request->query->all(),
             'post' => $this->request->request->all(),
@@ -52,15 +52,19 @@ class Logger
             'created_at' => new \MongoDB\BSON\UTCDateTime(time()),
         ]);
 
-        (new Telegram())->sendRequest('sendMessage', [
-            'chat_id' => $chatId,
-            'text' => sprintf(
-                "New Request.\nTag: %s\nMethod: %s\nGET: %s\nPOST: %s",
-                $this->tag,
-                $this->request->getMethod(),
-                json_encode($this->request->query->all(), JSON_PRETTY_PRINT),
-                json_encode($this->request->request->all(), JSON_PRETTY_PRINT)
-            )
-        ]);
+        $tags = isset($user['tags']) ? (array)$user['tags'] : [];
+
+        if(in_array($this->tag, $tags)) {
+            (new Telegram())->sendRequest('sendMessage', [
+                'chat_id' => $user['chat_id'],
+                'text' => sprintf(
+                    "New Request.\nTag: %s\nMethod: %s\nGET: %s\nPOST: %s",
+                    $this->tag,
+                    $this->request->getMethod(),
+                    json_encode($this->request->query->all(), JSON_PRETTY_PRINT),
+                    json_encode($this->request->request->all(), JSON_PRETTY_PRINT)
+                )
+            ]);
+        }
     }
 }
