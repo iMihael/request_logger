@@ -1,0 +1,21 @@
+version: '2'
+
+services:
+    php:
+        build: ./docker/php
+        #image: php:7.0-cli
+        ports:
+            - 8080:8080
+        volumes:
+            - .:/var/www/
+        container_name: bot_php
+        #entrypoint:
+        #    - php
+        #    - "-S"
+        #    - "0.0.0.0:8080"
+        #    - "/var/www/web/"
+    mongo:
+        image: mongo:latest
+        expose:
+            - 27017
+        container_name: bot_mongo
